@@ -38,6 +38,4 @@ if __name__ == "__main__":
     evolve_options = default_evolve_options._replace(cost_options=cost_options, verbose=True)
     # Using _replace allows us to set only the values we actually care about.
 
-    results = evolve_bf_program(['Hello, world!'], ['!dlrow ,olleH'], evolve_options)
-
-    report_evolution(results)
+    results = supervised_evolve(['Hello, world!'], ['Hello, fool.'], evolve_options)

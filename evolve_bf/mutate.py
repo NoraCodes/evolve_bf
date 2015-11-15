@@ -19,8 +19,8 @@ default_mutate_options = MutateOptions(likelihood_of_inplace = 100, likelihood_o
 def mutation_function(program, options=default_mutate_options):
     """
     Mutate program based on liklihood inputs
-    :param program:  The program to mutate
-
+    :param program: The program to mutate
+    :param options: A MutateOptions with options for the function
     :return: A new program
     """
     choice_list = ['inplace'] * options.likelihood_of_inplace + \

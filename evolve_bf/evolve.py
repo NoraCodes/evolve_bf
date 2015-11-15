@@ -114,8 +114,6 @@ def evolve_bf_program(inputs, targets, options = default_evolve_options):
         new_population = []
         generations += 1
 
-    return winner
-
 
 def generate_population(individuals, length=10):
     i = 0
@@ -180,3 +178,33 @@ def report_evolution(results):
     else:
         print("Success!\nGeneration {}:\n\t{}\ngiving:{}".format(results.generations, results.program, results.output))
         return True
+
+
+def supervised_evolve(inputs, outputs, evolve_options=default_evolve_options, retry=5):
+    """
+    Run an evolution, restarting if evolution fails
+    :param inputs: Inputs to the evolving program
+    :param outputs: Outputs expected from the evolving program
+    :param evolve_options: An EvolveOptions for the evolution function
+    :param retry: How many times to retry; 0 is try forever.
+    :return: The successful program
+    """
+    tries = 1
+    while True:
+        if tries > retry:
+            return False
+
+        try:
+            result = evolve_bf_program(inputs, outputs, evolve_options)
+        except KeyboardInterrupt:
+            print("Supervised evolution exiting prematurely: keyboard interrupt.")
+            raise
+        except SystemExit:
+            print("Supervised evolution exiting prematurely: system exit.")
+            raise
+        if result is not None:
+            print("After {} tries, evolution succeeded!".format(tries))
+            report_evolution(result)
+            return result.program
+        else:
+            tries += 1
