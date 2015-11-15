@@ -33,28 +33,10 @@ if __name__ == "__main__":
     #results = evolve_bf_program(['Hello, world!', 'Flump', 'Alawakkawumpwump'],
     #                        ['Hello, world!', 'Flump', 'Alawakkawumpwump'])
 
-    cost_table = {'timeout': 50,
-                  'no output': 25,
-                  'non_ascii': 1,
-                  'too_short': 5,
-                  'too_long': 1,
-                  'one_char_wrong': 5,
-                  'extra_char': 3,
-                  'missing_char': 2,
-                  'non_intersection': 1,
-                  'not_equal': 1}
+    cost_options = cost.default_cost_options._replace(ascii_only=True)
 
-    cost_options = cost.CostOptions(program_timeout=10,
-                                   cost_table=cost_table,
-                                   ascii_only=True)
-
-    evolve_options = EvolveOptions(cull_ratio = 0.5,
-                                   population_size = 100,
-                                   initial_program_size = 8,
-                                   program_timeout = 10,
-                                   generation_limit = 10000,
-                                   verbose=True,
-                                   cost_options=cost_options)
+    evolve_options = default_evolve_options._replace(cost_options=cost_options, verbose=True)
+    # Using _replace allows us to set only the values we actually care about.
 
     results = evolve_bf_program(['Hello, world!'], ['!dlrow ,olleH'], evolve_options)
 
