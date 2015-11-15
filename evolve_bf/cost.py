@@ -11,8 +11,9 @@ default_cost_table = {'timeout': 50,
                       'too_short': 5,
                       'too_long': 1,
                       'one_char_wrong': 5,
-                      'extra_char': 3,
-                      'missing_char': 2,
+                      'extra_char': 4,
+                      'missing_char': 4,
+                      'wrong_char': 2,
                       'non_intersection': 1,
                       'not_equal': 1}
 
@@ -81,6 +82,34 @@ def cost_function(inputs, targets, program, options=default_cost_options):
             continue  # Prevent double jeopardy
         else:
             # There is output, and it's not right.
+            divergence_index = False
+            if len(output) > len(targets[input_string_index]):
+                # Output is longer, so we need to penalize for that as well
+                for char_index in range(1, len(targets[input_string_index])):
+                    if output[char_index] != targets[input_string_index][char_index]:
+                        # Incorrectness penalty
+                        divergence_index = char_index
+
+                if divergence_index is not False:
+                    # If there was a divergence, penalize based on incorrect chars within the correct length
+                    for char_index in range(divergence_index, len(targets[input_string_index])):
+                        # Add penalty per wrong char
+                        if output[char_index] != targets[input_string_index][char_index]:
+                            program_cost_addition += options.cost_table['wrong_char']
+
+            else:
+                # Output is equal or shorter; apply penalty for missing chars and shortness
+                if len(output) > 0:
+                    for char_index in range(1, len(output)):
+                        if output[char_index] != targets[input_string_index][char_index]:
+                            # We've found the divergence point
+                            divergence_index = char_index
+                        if divergence_index is not False:
+                            # There was a divergence; penalize based on incorrect chars within the correct length
+                            for char_index in range(divergence_index, len(output)):
+                                # Add penalty per wrong char
+                                if output[char_index] != targets[input_string_index][char_index]:
+                                    program_cost_addition += options.cost_table['wrong_char']
 
             if len(output) > len(targets[input_string_index]):
                 # The output is too long.

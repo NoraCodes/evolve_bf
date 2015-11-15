@@ -4,17 +4,18 @@ from collections import namedtuple
 
 MutateOptions = namedtuple("MutationOptions", ['likelihood_of_inplace', 'likelihood_of_addition',
                                                'likelihood_of_deletion', 'likelihood_of_none',
-                                               'looping_chance'])
+                                               'looping_chance', 'max_symbols_per_addition'])
 
 default_mutate_options = MutateOptions(likelihood_of_inplace = 100, likelihood_of_addition= 30,
-                                       likelihood_of_deletion= 40, likelihood_of_none = 1, looping_chance = 20)
+                                       likelihood_of_deletion= 40, likelihood_of_none = 1, looping_chance = 20,
+                                       max_symbols_per_addition=3)
 # Options for the mutation function:
 # likelihood_of_inplace: How common an in-place mutation is (e.g. . -> ,)
 # likelihood_of_addition: How common an addition mutation is
 # liklihood_of_deletion: How common a deletion is
 # liklihood_of_none: How common perfect transcription is
 # looping_chance: How likley it is to insert a loop. Percent.
-
+# max_symbols_per_addition: Add from 1 to this many symbols of each type per addition
 
 def mutation_function(program, options=default_mutate_options):
     """
@@ -72,7 +73,9 @@ def mutation_function(program, options=default_mutate_options):
                 # Not enough room
                 pass
         else:
-            program = program[:index_to_mutate] + choice(common.valid_commands_no_loops) + program[index_to_mutate:]
+            addnum = randint(1, options.max_symbols_per_addition + 1)
+            program = program[:index_to_mutate] + choice(common.valid_commands_no_loops_weighted) + \
+                      program[index_to_mutate:]
         pass
     if mutation_type == 'deletion':
         index_to_mutate = randint(1, len(program))
