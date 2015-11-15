@@ -74,7 +74,8 @@ def mutation_function(program, options=default_mutate_options):
                 pass
         else:
             addnum = randint(1, options.max_symbols_per_addition + 1)
-            program = program[:index_to_mutate] + choice(common.valid_commands_no_loops_weighted) + \
+            addition = "" + choice(common.valid_commands_no_loops_weighted) * addnum
+            program = program[:index_to_mutate] + addition + \
                       program[index_to_mutate:]
         pass
     if mutation_type == 'deletion':
