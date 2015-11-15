@@ -240,7 +240,7 @@ def cost_function(inputs, targets, program, program_timeout = 10, cost_table = d
 
 
 def mutation_function(program, likelihood_of_inplace = 100, likelihood_of_addition= 30,
-                      liklihood_of_deletion= 20, liklihood_of_none = 1, looping_chance = 20):
+                      liklihood_of_deletion= 25, liklihood_of_none = 1, looping_chance = 20):
     """
     Mutate program based on liklihood inputs
     :param program:  The program to mutate
@@ -257,6 +257,10 @@ def mutation_function(program, likelihood_of_inplace = 100, likelihood_of_additi
         ['none'] * liklihood_of_none
     mutation_type = choice(choice_list)  # Pick a mutation type
 
+    if len(program) == 1:
+        # The mutation logic does not work on one-length programs
+        return program + choice(valid_commands_no_loops)
+
     if mutation_type == 'inplace':
         index_to_mutate = randint(1, len(program))
         # Replace a single symbol
@@ -268,13 +272,22 @@ def mutation_function(program, likelihood_of_inplace = 100, likelihood_of_additi
             # For now we just chicken out
             pass
         else:
-            program = program[:(index_to_mutate - 1)] + choice(valid_commands_no_loops) + program[index_to_mutate:]
-            pass
+            do_add_loop = choice([True] * looping_chance + [False] * (100-looping_chance))
+            if do_add_loop:
+                if index_to_mutate < len(program) - 2:
+                    # We have enough room
+                    skip_index = index_to_mutate + randint(1, len(program) - index_to_mutate)
+                    program = program[:index_to_mutate] + '[' + program[index_to_mutate:skip_index] + ']' + \
+                              program[skip_index:]
+                else:
+                    # Not enough room
+                    pass
+            else:
+                program = program[:(index_to_mutate - 1)] + choice(valid_commands_no_loops) + program[index_to_mutate:]
+                pass
     if mutation_type == 'addition':
         index_to_mutate = randint(1, len(program))
         # Insert a symbol at index_to_mutate
-        # TODO: Implement adding loops by this mechanism
-        # Implementaion note: when inserting a [, insert a ] at (pos_of_[) + (random_int_less_than_length)
         do_add_loop = choice([True] * looping_chance + [False] * (100-looping_chance))
         if do_add_loop:
             if index_to_mutate < len(program) - 2:
@@ -283,7 +296,7 @@ def mutation_function(program, likelihood_of_inplace = 100, likelihood_of_additi
                 program = program[:index_to_mutate] + '[' + program[index_to_mutate:skip_index] + ']' + \
                           program[skip_index:]
             else:
-                # Not enought room
+                # Not enough room
                 pass
         else:
             program = program[:index_to_mutate] + choice(valid_commands_no_loops) + program[index_to_mutate:]
@@ -291,10 +304,14 @@ def mutation_function(program, likelihood_of_inplace = 100, likelihood_of_additi
     if mutation_type == 'deletion':
         index_to_mutate = randint(1, len(program))
         if program[index_to_mutate - 1] in ['[', ']']:  # -1 here because indices are from 0 not from 1
-            # If the symbol is part of a loop, figure out how to delete it safely.
-            # TODO: MAKE THIS WORK!
-            # For now we just chicken out
-            pass
+            # If the symbol is part of a loop, count up to the next one and delete that too
+            next_bracket_position = index_to_mutate - 1
+            for char in program[index_to_mutate:]:
+                next_bracket_position += 1
+                if char == ']':
+                    break
+            program = program[:(index_to_mutate - 1)] + program[index_to_mutate:]
+            program = program[:(next_bracket_position - 1)] + program[next_bracket_position:]
         else:
             # Delete a single symbol
             program = program[:(index_to_mutate - 1)] + program[index_to_mutate:]
@@ -313,10 +330,13 @@ def crossing_function(program_a, program_b):
     :return:
     """
     # TODO: Implement something other than naive randomness here
+    if len(program_a) == 1 or len(program_b) == 1:
+        return program_a + program_b, program_b + program_a
+
     if len(program_a) > len(program_b):
-        crossing_index = randint(1, len(program_b))
+        crossing_index = randint(0, len(program_b))
     else:
-        crossing_index = randint(1, len(program_a))
+        crossing_index = randint(0, len(program_a))
     program_aprime = program_a[:crossing_index] + program_b[crossing_index:]
     program_bprime = program_b[:crossing_index] + program_a[crossing_index:]
     return program_aprime, program_bprime
@@ -364,10 +384,10 @@ if __name__ == "__main__":
 
     #print(evolve_bf_program(['1', '2'], ['Hello, world!', '!dlrow ,olleH']))
     # simple cat spec
-    #results = evolve_bf_program(['Hello, world!', 'Flump', 'Alawakkawumpwump'],
-    #                        ['Hello, world!', 'Flump', 'Alawakkawumpwump'])
+    results = evolve_bf_program(['Hello, world!', 'Flump', 'Alawakkawumpwump'],
+                            ['Hello, world!', 'Flump', 'Alawakkawumpwump'])
 
     # add two numbers seperated by a \0x00
-    results = evolve_bf_program([string.ascii_letters], ['Hello, world!'], verbose=True)
+    #results = evolve_bf_program([string.ascii_letters], ['Hello, world!'], verbose=True)
 
     report_evolution(results)
