@@ -85,17 +85,18 @@ def evolve_bf_program(inputs, targets, options = default_evolve_options):
             print("Gen. {}: Cost {} \n{}\n{}\n".format(generations, sorted_cost_mapping[0].cost,
                                                        sorted_cost_mapping[0].program,
                                                        interpret.evaluate(sorted_cost_mapping[0].program,
-                                                                             inputs[0])))
+                                                                          inputs[0])))
 
         # Kill cull_ratio of P_g, starting with those with the largest cost, removing cost mappings in the process
         center_number = int(len(sorted_cost_mapping) * options.cull_ratio)
         culled_population = [mapped_program.program for mapped_program in sorted_cost_mapping[:center_number]]
-        # Explaination: loop through sorted_cost_mapping, stripping cost mappings, until we hit center_number.
+        # Explanation: loop through sorted_cost_mapping, stripping cost mappings, until we hit center_number.
         # The rest are killed.
         #print(cost_mapping)
         #print(culled_population)
         # Replicate-with-errors from P_g to I
-        interstitial_population = [mutate.mutation_function(program, options.mutate_options) for program in culled_population]
+        interstitial_population = [mutate.mutation_function(program, options.mutate_options) for program in
+                                   culled_population]
         #print(interstitial_population)
 
         # Cross P_g with I, creating P_g+1
@@ -107,6 +108,8 @@ def evolve_bf_program(inputs, targets, options = default_evolve_options):
                                               interstitial_population[population_index])
             new_population.append(n)
             new_population.append(nprime)
+        new_population.append(culled_population[0]) # Add the winner of the previous generation; this should help
+                                                    # to prevent regressions, a major problem in previous versions
 
         # g = g+1
         current_population = new_population
