@@ -1,50 +1,32 @@
-from evolve_bf import bf_interpret
+from evolve_bf import interpret
 # This program evolves BF code, and may eventually be improved to evolve BrainFork or 4Brain as well.
 # Example: evolve_bf_program(['1', '2'], ['Hello, world!', '!dlrow ,olleH']) will evolve a program which, given 1 as
 #   an input, prints Hello, world! and, given 2 as an input, prints the reverse.
 
 from collections import namedtuple
 from random import shuffle, choice, randint
-import string
+from evolve_bf import cost
 
 MappedProgram = namedtuple("MappedProgram", ["cost", "program"])
 ProgramReport = namedtuple("ProgramReport", ["program", "cost", "generations", "output"])
+EvolveOptions = namedtuple("EvolveOptions", ['cull_ratio', 'population_size', 'initial_program_size',
+                                             'program_timeout', 'generation_limit', 'verbose', 'cost_options'])
+
+default_evolve_options = EvolveOptions(cull_ratio = 0.5, population_size = 100, initial_program_size = 8,
+                                       program_timeout = 10, generation_limit = 10000, verbose=False,
+                                       cost_options=cost.default_cost_options)
 
 valid_commands = ['.', ',', '[', ']', '<', '>', '+', '-']  # These are the valid commands in BF which will be used to
                                                            # evolve our programs
-
 valid_commands_no_end_loop = ['.', ',', '[', '<', '>', '+', '-']
-
 valid_commands_no_loops = ['.', ',', '<', '>', '+', '-']
 
-ascii_list = string.ascii_letters+string.digits
 
 def get_key_for_MappedProgram(mapped_program):
     return mapped_program.cost
 
 
-def set_intersection(a, b):
-    c = []
-    for e in a:
-        if e in b:
-            c.append(e)
-    return c
-
-# What each failure costs
-default_cost_table = {'timeout': 50,
-              'no output': 25,
-              'non_ascii': 1,
-              'too_short': 5,
-              'too_long': 1,
-              'one_char_wrong': 5,
-              'extra_char': 3,
-              'missing_char': 2,
-              'non_intersection': 1,
-              'not_equal': 1}
-
-
-def evolve_bf_program(inputs, targets, cull_ratio = 0.5, population_size = 100, initial_program_size = 8,
-                      program_timeout = 10, generation_limit = 10000, cost_table = default_cost_table, verbose=False):
+def evolve_bf_program(inputs, targets, options = default_evolve_options):
     """
     Use the genetic algorithm to create a BF program that, given each input, computes the corresponding output.
     :param inputs: A list of inputs which produce a corresponding output
@@ -62,7 +44,7 @@ def evolve_bf_program(inputs, targets, cull_ratio = 0.5, population_size = 100, 
 
     # Generate an initial population
 
-    current_population = generate_population(population_size, initial_program_size)
+    current_population = generate_population(options.population_size, options.initial_program_size)
     # This is population P_0 and, at the beginning, P_g as well.
     interstitial_population = [] # This is I, the mutated but non-crossed generation
     new_population = []  # P_g+1
@@ -73,16 +55,16 @@ def evolve_bf_program(inputs, targets, cull_ratio = 0.5, population_size = 100, 
 
     while True:
         # Test that we have not run over
-        if generations >= generation_limit:
+        if generations >= options.generation_limit:
             return None
         # Test the cost of each member of P_g
         #print(current_population)
         cost_mapping = []
         for program_index in range(0, len(current_population)):
-            cost_mapping.append(MappedProgram(cost = cost_function(inputs, targets, current_population[program_index],
-                                                                   program_timeout = program_timeout,
-                                                                   cost_table=cost_table),
-                                              program = current_population[program_index]))
+            cost_mapping.append(MappedProgram(cost=cost.cost_function(inputs, targets,
+                                                                        current_population[program_index],
+                                                                        options=options.cost_options),
+                                              program=current_population[program_index]))
             # In this way, cost_mapping[0] is (cost_of_P_g[0], P_g[0])
 
             # Test this program has a cost of zero; if so, return. We are done.
@@ -90,7 +72,7 @@ def evolve_bf_program(inputs, targets, cull_ratio = 0.5, population_size = 100, 
                 winner_output = "\n"
                 for input_string_index in range(0, len(inputs)):
                     winner_output += "{}:{}\n".format(inputs[input_string_index],
-                                                      bf_interpret.evaluate(cost_mapping[program_index].program,
+                                                      interpret.evaluate(cost_mapping[program_index].program,
                                                                             inputs[input_string_index]))
                 winner = ProgramReport(program = cost_mapping[program_index].program,
                                        cost = cost_mapping[program_index].cost,
@@ -101,15 +83,15 @@ def evolve_bf_program(inputs, targets, cull_ratio = 0.5, population_size = 100, 
         # Sort the cost mapping to prepare for culling
         sorted_cost_mapping = sorted(cost_mapping, key=get_key_for_MappedProgram)
 
-        if verbose:
+        if options.verbose:
             # Report on the current winner:
             print("Gen. {}: Cost {} \n{}\n{}\n".format(generations, sorted_cost_mapping[0].cost,
                                                        sorted_cost_mapping[0].program,
-                                                       bf_interpret.evaluate(sorted_cost_mapping[0].program,
+                                                       interpret.evaluate(sorted_cost_mapping[0].program,
                                                                              inputs[0])))
 
         # Kill cull_ratio of P_g, starting with those with the largest cost, removing cost mappings in the process
-        center_number = int(len(sorted_cost_mapping) * cull_ratio)
+        center_number = int(len(sorted_cost_mapping) * options.cull_ratio)
         culled_population = [mapped_program.program for mapped_program in sorted_cost_mapping[:center_number]]
         # Explaination: loop through sorted_cost_mapping, stripping cost mappings, until we hit center_number.
         # The rest are killed.
@@ -168,75 +150,6 @@ def generate_population(individuals, length=10):
         i += 1
         population.append(individual)
     return population
-
-
-def cost_function(inputs, targets, program, program_timeout = 10, cost_table = default_cost_table):
-    """
-    Check whether a given program, when passed inputs, produces the corresponding outputs
-    :param inputs: Inputs to pass
-    :param targets: Expected targets
-    :param program: The BF program to run
-    :param program_timeout: How long to run each program
-    :return: int
-    """
-    program_cost = 0
-    program_cost_addition = 0
-    for input_string_index in range(0, len(inputs)):
-        program_cost_addition = 0
-        # Run the program, ensuring that it is not an infinite loop or a syntax error, then applying costs to it
-        try:
-            output = bf_interpret.evaluate(program, inputs[input_string_index], program_timeout)
-        except bf_interpret.TimeoutAbortException:
-            program_cost_addition += cost_table['timeout']
-            program_cost += program_cost_addition
-            continue # This is to prevent output being reffed after, since it is not assigned if the try fails
-        except bf_interpret.BFSyntaxException:
-            program_cost_addition = 2^30 - 1  #  Max int: syntax errors are inviable
-            program_cost += program_cost_addition
-            continue
-        except KeyError:
-            program_cost_addition = 2^30 - 1 # Max int; syntax errors are inviable
-            program_cost += program_cost_addition
-            continue
-
-        if output == targets[input_string_index]:
-            program_cost_addition = 0  # Ding ding ding we have a winner
-            program_cost += program_cost_addition
-            continue
-        else:
-            program_cost_addition += cost_table['not_equal']
-
-        if output == '':
-            # There's no output.
-            program_cost_addition += cost_table['no output']
-            program_cost += program_cost_addition
-            continue  # Prevent double jeopardy
-        else:
-            # There is output, and it's not right.
-            if len(output) > len(targets[input_string_index]):
-                program_cost_addition += cost_table['too_long'] * (len(output) - len(targets[input_string_index]))
-            elif len(output) < len(targets[input_string_index]):
-                program_cost_addition += cost_table['too_short'] * (len(targets[input_string_index]) - len(output))
-
-            if targets[input_string_index] in output:
-                # Our desired output is in the output, penalize only for the extra chars
-                program_cost_addition += (len(output) - len(targets[input_string_index])) * cost_table['extra_char']
-            elif output in targets[input_string_index]:
-                # We have an incomplete output, penalize only for those missing chars
-                program_cost_addition += (len(targets[input_string_index]) - len(output)) * cost_table['missing_char']
-            else:
-                # Just find the intersection as sets, as a last ditch differentiator
-                intersection = set_intersection(targets[input_string_index], output)
-                program_cost_addition += len(output) - len(intersection)
-            for character in output:
-                if character not in ascii_list:
-                    # non-ascii chars
-                    # TODO: Allow turning this off
-                    program_cost_addition += cost_table['non_ascii']
-
-        program_cost += program_cost_addition
-
-    return program_cost
 
 
 def mutation_function(program, likelihood_of_inplace = 100, likelihood_of_addition= 30,

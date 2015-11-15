@@ -1,3 +1,3 @@
 __author__ = 'leo'
 
-from . import bf_interpret, evolve
+from . import interpret, evolve
