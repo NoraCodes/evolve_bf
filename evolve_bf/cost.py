@@ -82,10 +82,26 @@ def cost_function(inputs, targets, program, options=default_cost_options):
             continue  # Prevent double jeopardy
         else:
             # There is output, and it's not right.
+
+            # Find an offset at which a correct character resides, preventing the "y-umlaut problem"
+            #   (ýHello, world! instead of Hello, world! creating an evolutionary boundary)
+            if len(output) > len(targets[input_string_index]):
+                max_offset = len(targets[input_string_index])
+            else:
+                max_offset = len(output)
+
+            correction_offset = 0
+            for char_index in range(0, max_offset):
+                if output[correction_offset] == targets[input_string_index][0]:
+                    correction_offset = char_index
+                    break
+            # The correction offset tells us about some wrong chars; penalize for them.
+            program_cost_addition += correction_offset * options.cost_table['wrong_char']
+
             divergence_index = False
             if len(output) > len(targets[input_string_index]):
                 # Output is longer, so we need to penalize for that as well
-                for char_index in range(1, len(targets[input_string_index])):
+                for char_index in range(correction_offset, len(targets[input_string_index])):
                     if output[char_index] != targets[input_string_index][char_index]:
                         # Incorrectness penalty
                         divergence_index = char_index
@@ -100,7 +116,7 @@ def cost_function(inputs, targets, program, options=default_cost_options):
             else:
                 # Output is equal or shorter; apply penalty for missing chars and shortness
                 if len(output) > 0:
-                    for char_index in range(1, len(output)):
+                    for char_index in range(correction_offset, len(output)):
                         if output[char_index] != targets[input_string_index][char_index]:
                             # We've found the divergence point
                             divergence_index = char_index
