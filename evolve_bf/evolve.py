@@ -331,6 +331,8 @@ def report_evolution(results):
     if results is None:
         return False
     else:
+        print("Success!\nGeneration {}:\n\t{}\ngiving:{}".format(results.generations, results.program, results.output))
+        return True
         
 
 
@@ -364,4 +366,4 @@ if __name__ == "__main__":
     results = evolve_bf_program(['Hello, world!', 'Flump', 'Alawakkawumpwump'],
                             ['Hello, world!', 'Flump', 'Alawakkawumpwump'])
 
-    print("Success!\nGeneration {}:\n\t{}\ngiving:{}".format(results.generations, results.program, results.output))
+    report_evolution(results)
