@@ -31,7 +31,7 @@ def set_intersection(a, b):
     return c
 
 # What each failure costs
-cost_table = {'timeout': 50,
+default_cost_table = {'timeout': 50,
               'no output': 25,
               'non_ascii': 1,
               'too_short': 5,
@@ -44,7 +44,7 @@ cost_table = {'timeout': 50,
 
 
 def evolve_bf_program(inputs, targets, cull_ratio = 0.5, population_size = 100, initial_program_size = 8,
-                      program_timeout = 10, generation_limit = 10000):
+                      program_timeout = 10, generation_limit = 10000, cost_table = default_cost_table, verbose=False):
     """
     Use the genetic algorithm to create a BF program that, given each input, computes the corresponding output.
     :param inputs: A list of inputs which produce a corresponding output
@@ -55,6 +55,7 @@ def evolve_bf_program(inputs, targets, cull_ratio = 0.5, population_size = 100, 
     :param initial_program_size: How long programs start out as being
     :param program_timeout: How long each organism may run for, ms
     :param generation_limit: How many generations to run for before giving up
+    :param verbose: Print on every generation, or no?
     """
 
     # Check the inputs and outputs for nonstrings, convert them to strings
@@ -79,7 +80,8 @@ def evolve_bf_program(inputs, targets, cull_ratio = 0.5, population_size = 100, 
         cost_mapping = []
         for program_index in range(0, len(current_population)):
             cost_mapping.append(MappedProgram(cost = cost_function(inputs, targets, current_population[program_index],
-                                                                   program_timeout = program_timeout),
+                                                                   program_timeout = program_timeout,
+                                                                   cost_table=cost_table),
                                               program = current_population[program_index]))
             # In this way, cost_mapping[0] is (cost_of_P_g[0], P_g[0])
 
@@ -99,10 +101,12 @@ def evolve_bf_program(inputs, targets, cull_ratio = 0.5, population_size = 100, 
         # Sort the cost mapping to prepare for culling
         sorted_cost_mapping = sorted(cost_mapping, key=get_key_for_MappedProgram)
 
-        # Report on the current winner:
-        print("Gen. {}: Cost {} \n{}\n{}\n".format(generations, sorted_cost_mapping[0].cost,
-                                               sorted_cost_mapping[0].program,
-                                               bf_interpret.evaluate(sorted_cost_mapping[0].program, inputs[0])))
+        if verbose:
+            # Report on the current winner:
+            print("Gen. {}: Cost {} \n{}\n{}\n".format(generations, sorted_cost_mapping[0].cost,
+                                                       sorted_cost_mapping[0].program,
+                                                       bf_interpret.evaluate(sorted_cost_mapping[0].program,
+                                                                             inputs[0])))
 
         # Kill cull_ratio of P_g, starting with those with the largest cost, removing cost mappings in the process
         center_number = int(len(sorted_cost_mapping) * cull_ratio)
@@ -170,7 +174,7 @@ def generate_population(individuals, length=10):
     return population
 
 
-def cost_function(inputs, targets, program, program_timeout = 10):
+def cost_function(inputs, targets, program, program_timeout = 10, cost_table = default_cost_table):
     """
     Check whether a given program, when passed inputs, produces the corresponding outputs
     :param inputs: Inputs to pass
