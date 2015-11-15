@@ -124,12 +124,8 @@ def evolve_bf_program(inputs, targets, cull_ratio = 0.5, population_size = 100, 
         shuffle(interstitial_population)
         for population_index in range(0, len(culled_population)):
             #print(population_index, len(culled_population), len(interstitial_population))
-            try:
-                n, nprime = crossing_function(culled_population[population_index],
+            n, nprime = crossing_function(culled_population[population_index],
                                               interstitial_population[population_index])
-            except ValueError:
-                print("Program shrunk to nothing!")
-                return None
             new_population.append(n)
             new_population.append(nprime)
 
@@ -318,9 +314,9 @@ def crossing_function(program_a, program_b):
     """
     # TODO: Implement something other than naive randomness here
     if len(program_a) > len(program_b):
-        crossing_index = randint(1, len(program_b) - 1)
+        crossing_index = randint(1, len(program_b))
     else:
-        crossing_index = randint(1, len(program_a) - 1)
+        crossing_index = randint(1, len(program_a))
     program_aprime = program_a[:crossing_index] + program_b[crossing_index:]
     program_bprime = program_b[:crossing_index] + program_a[crossing_index:]
     return program_aprime, program_bprime
@@ -367,7 +363,11 @@ if __name__ == "__main__":
 
 
     #print(evolve_bf_program(['1', '2'], ['Hello, world!', '!dlrow ,olleH']))
-    results = evolve_bf_program(['Hello, world!', 'Flump', 'Alawakkawumpwump'],
-                            ['Hello, world!', 'Flump', 'Alawakkawumpwump'])
+    # simple cat spec
+    #results = evolve_bf_program(['Hello, world!', 'Flump', 'Alawakkawumpwump'],
+    #                        ['Hello, world!', 'Flump', 'Alawakkawumpwump'])
+
+    # add two numbers seperated by a \0x00
+    results = evolve_bf_program([string.ascii_letters], ['Hello, world!'], verbose=True)
 
     report_evolution(results)
