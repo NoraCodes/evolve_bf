@@ -50,23 +50,28 @@ def cost_function(inputs, targets, program, options=default_cost_options):
         try:
             output = interpret.evaluate(program, inputs[input_string_index], options.program_timeout)
         except interpret.TimeoutAbortException:
+            # Program ran for too long
             program_cost_addition += options.cost_table['timeout']
             program_cost += program_cost_addition
             continue # This is to prevent output being reffed after, since it is not assigned if the try fails
         except interpret.BFSyntaxException:
+            # Program was not valid - mismatched brackets
             program_cost_addition = 2^30 - 1  # Max int: syntax errors are inviable
             program_cost += program_cost_addition
             continue
         except KeyError:
+            # Program was not valid - broken instruction pointer
             program_cost_addition = 2^30 - 1  # Max int; syntax errors are inviable
             program_cost += program_cost_addition
             continue
 
         if output == targets[input_string_index]:
+            # Program output is CORRECT for this input
             program_cost_addition = 0  # Ding ding ding we have a winner
             program_cost += program_cost_addition
             continue
         else:
+            # This is here to ensure that incorrect programs cannot win unless someone changes the value :(
             program_cost_addition += options.cost_table['not_equal']
 
         if output == '':
@@ -76,17 +81,24 @@ def cost_function(inputs, targets, program, options=default_cost_options):
             continue  # Prevent double jeopardy
         else:
             # There is output, and it's not right.
+
             if len(output) > len(targets[input_string_index]):
-                program_cost_addition += options.cost_table['too_long'] * (len(output) - len(targets[input_string_index]))
+                # The output is too long.
+                program_cost_addition += options.cost_table['too_long'] * \
+                                         (len(output) - len(targets[input_string_index]))
             elif len(output) < len(targets[input_string_index]):
-                program_cost_addition += options.cost_table['too_short'] * (len(targets[input_string_index]) - len(output))
+                # The output is too short.
+                program_cost_addition += options.cost_table['too_short'] * \
+                                         (len(targets[input_string_index]) - len(output))
 
             if targets[input_string_index] in output:
                 # Our desired output is in the output, penalize only for the extra chars
-                program_cost_addition += (len(output) - len(targets[input_string_index])) * options.cost_table['extra_char']
+                program_cost_addition += (len(output) - len(targets[input_string_index])) * \
+                                         options.cost_table['extra_char']
             elif output in targets[input_string_index]:
                 # We have an incomplete output, penalize only for those missing chars
-                program_cost_addition += (len(targets[input_string_index]) - len(output)) * options.cost_table['missing_char']
+                program_cost_addition += (len(targets[input_string_index]) - len(output)) * \
+                                         options.cost_table['missing_char']
             else:
                 # Just find the intersection as sets, as a last ditch differentiator
                 intersection = set_intersection(targets[input_string_index], output)
@@ -95,8 +107,7 @@ def cost_function(inputs, targets, program, options=default_cost_options):
             if options.ascii_only: # Skip this if we don't need it; it's SLOW
                 for character in output:
                     if character not in ascii_list:
-                        # non-ascii chars
-                        # TODO: Allow turning this off
+                        # Penalize for non-alphanumeric-ascii chars
                         program_cost_addition += options.cost_table['non_ascii']
 
         program_cost += program_cost_addition
