@@ -240,7 +240,7 @@ def cost_function(inputs, targets, program, program_timeout = 10, cost_table = d
 
 
 def mutation_function(program, likelihood_of_inplace = 100, likelihood_of_addition= 30,
-                      liklihood_of_deletion= 25, liklihood_of_none = 1, looping_chance = 20):
+                      liklihood_of_deletion= 40, liklihood_of_none = 1, looping_chance = 20):
     """
     Mutate program based on liklihood inputs
     :param program:  The program to mutate
@@ -257,7 +257,7 @@ def mutation_function(program, likelihood_of_inplace = 100, likelihood_of_additi
         ['none'] * liklihood_of_none
     mutation_type = choice(choice_list)  # Pick a mutation type
 
-    if len(program) == 1:
+    if len(program) <= 1:
         # The mutation logic does not work on one-length programs
         return program + choice(valid_commands_no_loops)
 

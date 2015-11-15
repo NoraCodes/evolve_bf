@@ -30,10 +30,9 @@ if __name__ == "__main__":
 
     #print(evolve_bf_program(['1', '2'], ['Hello, world!', '!dlrow ,olleH']))
     # simple cat spec
-    results = evolve_bf_program(['Hello, world!', 'Flump', 'Alawakkawumpwump'],
-                            ['Hello, world!', 'Flump', 'Alawakkawumpwump'])
+    #results = evolve_bf_program(['Hello, world!', 'Flump', 'Alawakkawumpwump'],
+    #                        ['Hello, world!', 'Flump', 'Alawakkawumpwump'])
 
-    # add two numbers seperated by a \0x00
-    #results = evolve_bf_program([string.ascii_letters], ['Hello, world!'], verbose=True)
+    results = evolve_bf_program([''], [chr(37)], verbose=True)
 
     report_evolution(results)
