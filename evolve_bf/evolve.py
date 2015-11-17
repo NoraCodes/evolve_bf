@@ -5,7 +5,7 @@ from evolve_bf import interpret
 
 from collections import namedtuple
 from random import shuffle, choice, randint
-from evolve_bf import cost, mutate, common
+from evolve_bf import cost, mutate, common, cross
 
 MappedProgram = namedtuple("MappedProgram", ["cost", "program"])
 ProgramReport = namedtuple("ProgramReport", ["program", "cost", "generations", "output"])
@@ -104,7 +104,7 @@ def evolve_bf_program(inputs, targets, options = default_evolve_options):
         shuffle(interstitial_population)
         for population_index in range(0, len(culled_population)):
             #print(population_index, len(culled_population), len(interstitial_population))
-            n, nprime = crossing_function(culled_population[population_index],
+            n, nprime = cross.crossing_function(culled_population[population_index],
                                               interstitial_population[population_index])
             new_population.append(n)
             new_population.append(nprime)
@@ -148,26 +148,6 @@ def generate_population(individuals, length=10):
         i += 1
         population.append(individual)
     return population
-
-
-def crossing_function(program_a, program_b):
-    """
-    Cross program_a and program_b, producing program_ab and program_ab'
-    :param program_a: Program A for the cross
-    :param program_b: Program B for the cross
-    :return:
-    """
-    # TODO: Implement something other than naive randomness here
-    if len(program_a) == 1 or len(program_b) == 1:
-        return program_a + program_b, program_b + program_a
-
-    if len(program_a) > len(program_b):
-        crossing_index = randint(0, len(program_b))
-    else:
-        crossing_index = randint(0, len(program_a))
-    program_aprime = program_a[:crossing_index] + program_b[crossing_index:]
-    program_bprime = program_b[:crossing_index] + program_a[crossing_index:]
-    return program_aprime, program_bprime
 
 
 def report_evolution(results):
