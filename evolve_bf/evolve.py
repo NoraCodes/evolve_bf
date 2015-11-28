@@ -1,11 +1,11 @@
-from evolve_bf import interpret
+
 # This program evolves BF code, and may eventually be improved to evolve BrainFork or 4Brain as well.
 # Example: evolve_bf_program(['1', '2'], ['Hello, world!', '!dlrow ,olleH']) will evolve a program which, given 1 as
 #   an input, prints Hello, world! and, given 2 as an input, prints the reverse.
 
 from collections import namedtuple
 from random import shuffle, choice, randint
-from evolve_bf import cost, mutate, common, cross
+from evolve_bf import cost, mutate, common, cross, interpret
 
 MappedProgram = namedtuple("MappedProgram", ["cost", "program"])
 ProgramReport = namedtuple("ProgramReport", ["program", "cost", "generations", "output"])
@@ -13,7 +13,7 @@ EvolveOptions = namedtuple("EvolveOptions", ['cull_ratio', 'population_size', 'i
                                              'program_timeout', 'generation_limit', 'verbose', 'cost_options',
                                              'mutate_options'])
 
-default_evolve_options = EvolveOptions(cull_ratio = 0.5, population_size = 100, initial_program_size = 8,
+default_evolve_options = EvolveOptions(cull_ratio = 0.5, population_size = 1000, initial_program_size = 8,
                                        program_timeout = 10, generation_limit = 10000, verbose=False,
                                        cost_options=cost.default_cost_options,
                                        mutate_options=mutate.default_mutate_options)
@@ -57,43 +57,54 @@ def evolve_bf_program(inputs, targets, options = default_evolve_options):
         # Test the cost of each member of P_g
         #print(current_population)
         cost_mapping = []
+        replacements_required = 0  # How many inviable programs need replacing.
         for program_index in range(0, len(current_population)):
-            cost_mapping.append(MappedProgram(cost=cost.cost_function(inputs, targets,
-                                                                        current_population[program_index],
-                                                                        options=options.cost_options),
-                                              program=current_population[program_index]))
-            # In this way, cost_mapping[0] is (cost_of_P_g[0], P_g[0])
-
-            # Test this program has a cost of zero; if so, return. We are done.
-            if cost_mapping[program_index].cost == 0:
-                winner_output = "\n"
-                for input_string_index in range(0, len(inputs)):
-                    winner_output += "{}:{}\n".format(inputs[input_string_index],
-                                                      interpret.evaluate(cost_mapping[program_index].program,
-                                                                            inputs[input_string_index]))
-                winner = ProgramReport(program = cost_mapping[program_index].program,
-                                       cost = cost_mapping[program_index].cost,
-                                       generations = generations,
-                                       output = winner_output)
-                return winner  # There is a winner, so break out of the loop
+            current_program = current_population[program_index]
+            current_program_cost = cost.cost_function(inputs, targets, current_program, 
+                                                      options=options.cost_options)
+            if current_program_cost is False:
+                # In this case, the program is broken; cull it and replace it.
+                replacements_required += 1
+            else:
+                cost_mapping.append(MappedProgram(cost=current_program_cost,
+                                                  program=current_program))
+                # In this way, cost_mapping[0] is (cost_of_P_g[0], P_g[0])
+                 
+                # Test this program has a cost of zero; if so, return. We are done.
+                if current_program_cost == 0:
+                    winner_output = "\n"
+                    for input_string_index in range(0, len(inputs)):
+                        winner_output += "{}:{}\n".format(inputs[input_string_index],
+                                                          interpret.evaluate(current_program,
+                                                                             inputs[input_string_index]))
+                    winner = ProgramReport(program = current_program,
+                                           cost = current_program_cost,
+                                           generations = generations,
+                                           output = winner_output)
+                    return winner  # There is a winner, so break out of the loop
 
         # Sort the cost mapping to prepare for culling
         sorted_cost_mapping = sorted(cost_mapping, key=get_key_for_MappedProgram)
 
         if options.verbose:
             # Report on the current winner:
-            print("Gen. {}: Cost {} \n{}\n{}\n".format(generations, sorted_cost_mapping[0].cost,
-                                                       sorted_cost_mapping[0].program,
-                                                       interpret.evaluate(sorted_cost_mapping[0].program,
-                                                                          inputs[0])))
+            print("Gen. {}: {} programs, {} inviable. Min. cost {} \n{}\n{}\n".format(generations, 
+                                                                                      len(current_population),
+                                                                                      replacements_required,
+                                                                                      sorted_cost_mapping[0].cost,
+                                                                                      sorted_cost_mapping[0].program,
+                                                                                      interpret.evaluate(sorted_cost_mapping[0].program,
+                                                                                                         inputs[0])))
 
         # Kill cull_ratio of P_g, starting with those with the largest cost, removing cost mappings in the process
         center_number = int(len(sorted_cost_mapping) * options.cull_ratio)
         culled_population = [mapped_program.program for mapped_program in sorted_cost_mapping[:center_number]]
         # Explanation: loop through sorted_cost_mapping, stripping cost mappings, until we hit center_number.
         # The rest are killed.
-        #print(cost_mapping)
-        #print(culled_population)
+        # Now, we replace inviable programs with mutated versions of the current winner.
+        for replacement_number in range(0, int(replacements_required/2)):
+            culled_population.append(mutate.mutation_function(sorted_cost_mapping[0].program, 
+                                                              options.mutate_options))
         # Replicate-with-errors from P_g to I
         interstitial_population = [mutate.mutation_function(program, options.mutate_options) for program in
                                    culled_population]

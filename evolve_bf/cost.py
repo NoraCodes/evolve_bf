@@ -55,17 +55,9 @@ def cost_function(inputs, targets, program, options=default_cost_options):
             program_cost_addition += options.cost_table['timeout']
             program_cost += program_cost_addition
             continue # This is to prevent output being reffed after, since it is not assigned if the try fails
-        except interpret.BFSyntaxException:
+        except (interpret.BFSyntaxException, KeyError):
             # Program was not valid - mismatched brackets
-            program_cost_addition = 2^30 - 1  # Max int: syntax errors are inviable
-            program_cost += program_cost_addition
-            continue
-        except KeyError:
-            # Program was not valid - broken instruction pointer
-            program_cost_addition = 2^30 - 1  # Max int; syntax errors are inviable
-            program_cost += program_cost_addition
-            continue
-
+            return False
         if output == targets[input_string_index]:
             # Program output is CORRECT for this input
             program_cost_addition = 0  # Ding ding ding we have a winner
