@@ -9,11 +9,11 @@ default_cost_table = {'timeout': 50,
                       'no output': 25,
                       'non_ascii': 1,
                       'too_short': 5,
-                      'too_long': 1,
+                      'too_long': 4,
                       'one_char_wrong': 5,
                       'extra_char': 4,
                       'missing_char': 4,
-                      'wrong_char': 2,
+                      'wrong_char': 2, # NOTE: this is n times abs(ord(target) - ord(actual))
                       'non_intersection': 1,
                       'not_equal': 1}
 
@@ -88,7 +88,14 @@ def cost_function(inputs, targets, program, options=default_cost_options):
                     correction_offset = char_index
                     break
             # The correction offset tells us about some wrong chars; penalize for them.
-            program_cost_addition += correction_offset * options.cost_table['wrong_char']
+            #program_cost_addition += correction_offset * options.cost_table['wrong_char']
+            for char_index in range(correction_offset, len(output)):
+                try:
+                    program_cost_addition += options.cost_table['wrong_char'] * \
+                        abs(ord(output[char_index]) - ord(targets[input_string_index][char_index]))
+                except IndexError:
+                    # Index out of range, one string is done; abort.
+                    break
 
             divergence_index = False
             if len(output) > len(targets[input_string_index]):
