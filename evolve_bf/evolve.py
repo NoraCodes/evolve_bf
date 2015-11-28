@@ -101,10 +101,13 @@ def evolve_bf_program(inputs, targets, options = default_evolve_options):
         culled_population = [mapped_program.program for mapped_program in sorted_cost_mapping[:center_number]]
         # Explanation: loop through sorted_cost_mapping, stripping cost mappings, until we hit center_number.
         # The rest are killed.
-        # Now, we replace inviable programs with mutated versions of the current winner.
-        for replacement_number in range(0, int(replacements_required/2)):
+        # Now, we replace inviable programs with half mutated versions of the current winner and half new programs.
+        for replacement_number in range(0, int(replacements_required/4)+1):
             culled_population.append(mutate.mutation_function(sorted_cost_mapping[0].program, 
                                                               options.mutate_options))
+        # Pick a random length of program, then generate replacements with that length. (culled_population
+        #   shuffled, so culled_population[0] is a random program.
+        culled_population += generate_population(int(replacements_required/4)+1, len(culled_population[0])) 
         # Replicate-with-errors from P_g to I
         interstitial_population = [mutate.mutation_function(program, options.mutate_options) for program in
                                    culled_population]
@@ -119,8 +122,9 @@ def evolve_bf_program(inputs, targets, options = default_evolve_options):
                                               interstitial_population[population_index])
             new_population.append(n)
             new_population.append(nprime)
-        new_population.append(culled_population[0]) # Add the winner of the previous generation; this should help
-                                                    # to prevent regressions, a major problem in previous versions
+        shuffle(new_population)
+        # The new blood/old blood method grows the population; here we cut it down to size.
+        new_population = new_population[:options.population_size]
 
         # g = g+1
         current_population = new_population
