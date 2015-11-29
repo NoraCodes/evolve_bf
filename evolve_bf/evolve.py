@@ -14,7 +14,7 @@ EvolveOptions = namedtuple("EvolveOptions", ['cull_ratio', 'population_size', 'i
                                              'mutate_options'])
 
 default_evolve_options = EvolveOptions(cull_ratio = 0.5, population_size = 1000, initial_program_size = 8,
-                                       program_timeout = 10, generation_limit = 10000, verbose=False,
+                                       program_timeout = 20, generation_limit = 10000, verbose=False,
                                        cost_options=cost.default_cost_options,
                                        mutate_options=mutate.default_mutate_options)
 
@@ -88,14 +88,17 @@ def evolve_bf_program(inputs, targets, options = default_evolve_options):
 
         if options.verbose:
             # Report on the current winner:
-            print("Gen. {}: {} programs, {} inviable. Min. cost {} \n{}\n{}\n".format(generations, 
-                                                                                      len(current_population),
-                                                                                      replacements_required,
-                                                                                      sorted_cost_mapping[0].cost,
-                                                                                      sorted_cost_mapping[0].program,
-                                                                                      interpret.evaluate(sorted_cost_mapping[0].program,
-                                                                                                         inputs[0])))
-
+            try:
+                print("Gen. {}: {} programs, {} inviable. Min. cost {} \n{}\n{}\n".format(generations, 
+                                                                                          len(current_population),
+                                                                                          replacements_required,
+                                                                                          sorted_cost_mapping[0].cost,
+                                                                                          sorted_cost_mapping[0].program,
+                                                                                          interpret.evaluate(sorted_cost_mapping[0].program,
+                                                                                                             inputs[0],
+                                                                                                             timeout=options.program_timeout)))
+            except interpret.TimeoutAbortException:
+                print("Timeout on gen. " + str(generations))
         # Kill cull_ratio of P_g, starting with those with the largest cost, removing cost mappings in the process
         center_number = int(len(sorted_cost_mapping) * options.cull_ratio)
         culled_population = [mapped_program.program for mapped_program in sorted_cost_mapping[:center_number]]
