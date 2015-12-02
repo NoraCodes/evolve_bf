@@ -45,3 +45,8 @@ default_evolve_options = EvolveOptions(
                                        mutate_options = mutate.default_mutate_options  # For advanced users only
                                       )
 ```
+
+## How it Works
+
+### The short version
+The program generates a set of organisms in BF and evaluates them, using the difference between the inputs and expected outputs to assign a 'cost' to each organism. It then takes the 'best', those with the lowest cost, and mutates them, then crosses the mutated versions with the non-mutated ones. Then it evaluates those, mutates and crosses those, et cetera. Eventually, a program that satisfies the criteria is found, and its cost is 0. That's the result.
