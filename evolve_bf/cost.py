@@ -107,7 +107,7 @@ def cost_function(inputs, targets, program, options=default_cost_options):
         program_cost += time_cost
         return program_cost
     else:
-        return program_cost
+        return 0
 
 def old_cost_function(inputs, targets, program, options=default_cost_options):
     """
