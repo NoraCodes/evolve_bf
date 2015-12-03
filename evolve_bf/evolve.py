@@ -97,7 +97,7 @@ def evolve_bf_program(inputs, targets, options = default_evolve_options):
         # Figure out if we are stagnating
         if sorted_cost_mapping[0].cost == last_cost:
             flat_generations += 1  # We have been stagnant for this many generations
-            if flat_generation >= options.stagnation_generations:
+            if flat_generations >= options.stagnation_generations:
                 stagnant = True
         else:
             stagnant = False
