@@ -27,7 +27,11 @@ outputs = ['A', 'Hello, world!A', 'FooA']
 
 supervised_evolve(inputs, outputs, evolve_options)
 ```
-
+In the course of 26 generations, this created the program:
+```
++[,[.,],+++++<++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++.-,
+```
+Which is the correct way to write the program, with some minor cruft around the edges.
 ### Options
 
 All options are carried in namedtuples.
