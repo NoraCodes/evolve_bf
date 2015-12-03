@@ -22,10 +22,11 @@ default_cost_table = {'timeout': 1,
 #   program_timeout: The maximum time each BF program is allowed, in ms
 #   cost_table: a dict containing the values required for costing, one int per key
 #   ascii_only: True means that non-alphanumeric-ASCII output characters add to the cost
-CostOptions = namedtuple("CostOptions", ['program_timeout', 'cost_table', 'ascii_only'])
+CostOptions = namedtuple("CostOptions", ['program_timeout', 'cost_table', 'time_cost', 'ascii_only'])
 
 default_cost_options = CostOptions(program_timeout=10,
                                    cost_table=default_cost_table,
+                                   time_cost = False,
                                    ascii_only=True)
 
 def set_intersection(a, b):
@@ -46,14 +47,19 @@ def cost_function(inputs, targets, program, options=default_cost_options):
     """
     program_cost = 0
     program_cost_addition = 0
+    time_cost = 0
     for input_string_index in range(0, len(inputs)):
         program_cost_addition = 0
         # Run the program, ensuring that it is not an infinite loop or a syntax error, then applying costs to it
         try:
-            output = interpret.evaluate(program, inputs[input_string_index], options.program_timeout)
+            (output, runtime) = interpret.evaluate(program, inputs[input_string_index], options.program_timeout, return_time=True)
         except (interpret.BFSyntaxException, KeyError, interpret.TimeoutAbortException):
             # Program was not valid - mismatched brackets
             return False
+        if options.time_cost:
+            time_cost += int(runtime * 1000)  # This will only be added to the cost if the program is not correct, i.e., the cost is not zero at the end.
+        else:
+            time_cost = 0
 
         if output == targets[input_string_index]:
             # Program output is CORRECT for this input
@@ -97,8 +103,11 @@ def cost_function(inputs, targets, program, options=default_cost_options):
                 program_cost_addition += options.cost_table['wrong_char'] * abs(ord(expected_char) - ord(actual_char))
         program_cost += program_cost_addition 
 
-
-    return program_cost
+    if program_cost > 0:
+        program_cost += time_cost
+        return program_cost
+    else:
+        return program_cost
 
 def old_cost_function(inputs, targets, program, options=default_cost_options):
     """

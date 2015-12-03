@@ -10,11 +10,12 @@ from evolve_bf import cost, mutate, common, cross, interpret
 MappedProgram = namedtuple("MappedProgram", ["cost", "program"])
 ProgramReport = namedtuple("ProgramReport", ["program", "cost", "generations", "output"])
 EvolveOptions = namedtuple("EvolveOptions", ['cull_ratio', 'population_size', 'initial_program_size',
-                                             'program_timeout', 'generation_limit', 'verbose', 'cost_options',
+                                             'program_timeout', 'generation_limit', 'verbose', 'cost_options', 'stagnation_generations',
                                              'mutate_options'])
 
 default_evolve_options = EvolveOptions(cull_ratio = 0.5, population_size = 1000, initial_program_size = 8,
-                                       program_timeout = 20, generation_limit = 10000, verbose=False,
+                                       program_timeout = 20, generation_limit = 10000, stagnation_generations = 10,
+                                       verbose=False,
                                        cost_options=cost.default_cost_options,
                                        mutate_options=mutate.default_mutate_options)
 
@@ -49,7 +50,10 @@ def evolve_bf_program(inputs, targets, options = default_evolve_options):
     generations = 0  # This is g
 
     winner = ProgramReport("",0,0,"")
-
+    
+    last_cost = 0
+    flat_generations = 0
+    stagnant = False
     while True:
         # Test that we have not run over
         if generations >= options.generation_limit:
@@ -60,8 +64,12 @@ def evolve_bf_program(inputs, targets, options = default_evolve_options):
         replacements_required = 0  # How many inviable programs need replacing.
         for program_index in range(0, len(current_population)):
             current_program = current_population[program_index]
+            if stagnant:
+                cost_options = options.cost_options._replace(time_cost=True)
+            else:
+                cost_options = options.cost_options
             current_program_cost = cost.cost_function(inputs, targets, current_program, 
-                                                      options=options.cost_options)
+                                                      options=cost_options)
             if current_program_cost is False:
                 # In this case, the program is broken; cull it and replace it.
                 replacements_required += 1
@@ -85,6 +93,16 @@ def evolve_bf_program(inputs, targets, options = default_evolve_options):
 
         # Sort the cost mapping to prepare for culling
         sorted_cost_mapping = sorted(cost_mapping, key=get_key_for_MappedProgram)
+
+        # Figure out if we are stagnating
+        if sorted_cost_mapping[0].cost == last_cost:
+            flat_generations += 1  # We have been stagnant for this many generations
+            if flat_generation >= options.stagnation_generations:
+                stagnant = True
+        else:
+            stagnant = False
+            flat_generations = 0
+            last_cost = sorted_cost_mapping[0].cost 
 
         if options.verbose:
             # Report on the current winner:

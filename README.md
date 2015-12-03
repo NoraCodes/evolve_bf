@@ -42,7 +42,8 @@ default_evolve_options = EvolveOptions(
                                        generation_limit = 10000,  # How many generations to run before giving up
                                        verbose = False,  # Whether to print reports every generation. Useful during development.
                                        cost_options = cost.default_cost_options,  # For advanced users only
-                                       mutate_options = mutate.default_mutate_options  # For advanced users only
+                                       mutate_options = mutate.default_mutate_options,  # For advanced users only
+                                       stagnation_generations = 10,  # After this many generations of no progress, kick in anti-stagnation measures.
                                       )
 ```
 

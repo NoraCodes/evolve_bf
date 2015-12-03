@@ -32,7 +32,8 @@ def cleanup(code):
     return list(filter(lambda x: x in ['.', ',', '[', ']', '<', '>', '+', '-'], code))
 
 
-def evaluate(code, input_string, timeout = 5):
+def evaluate(code, input_string, timeout = 5, return_time=False):
+    # if return_time = True, we need to return a tuple (output, time)
     code     = cleanup(list(code))
     bracemap = buildbracemap(code)
 
@@ -44,7 +45,8 @@ def evaluate(code, input_string, timeout = 5):
     time_target = time_begin + (timeout / 1000)  # Convert from milliseconds
 
     while codeptr < len(code):
-        if time.time() > time_target:
+        current_time = time.time()
+        if current_time > time_target:
             # We have spent too long in this execution. Using an exception avoids the problem that Igliu had:
             #   https://igliu.com/program-that-writes-brainfuck/
             #   in which his code would loop infinitely to produce a 0 return value (his abort value)
@@ -83,5 +85,8 @@ def evaluate(code, input_string, timeout = 5):
 
         codeptr += 1
 
-    return output
+    if return_time:
+        return (output, current_time - time_begin)
+    else:
+        return output
 
