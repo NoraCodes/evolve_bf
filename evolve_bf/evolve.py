@@ -34,7 +34,6 @@ def evolve_bf_program(inputs, targets, options = default_evolve_options):
     :param population_size: The initial size of the population (P_0). May grow or shrink depending on other inputs
     :param initial_program_size: How long programs start out as being
     :param program_timeout: How long each organism may run for, ms
-    :param generation_limit: How many generations to run for before giving up
     :param verbose: Print on every generation, or no?
     """
 
@@ -55,9 +54,6 @@ def evolve_bf_program(inputs, targets, options = default_evolve_options):
     flat_generations = 0
     stagnant = False
     while True:
-        # Test that we have not run over
-        if generations >= options.generation_limit:
-            return None
         # Test the cost of each member of P_g
         #print(current_population)
         cost_mapping = []
